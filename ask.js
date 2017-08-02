@@ -1,62 +1,102 @@
-﻿//GSAP variables
-var master = new TimelineMax({repeat:-1}),
-    card = $(".crd"),
-    firstCard = $(".firstCard"),
-    secondCard = $(".secondCard"),
-    thirdCard = $(".thirdCard"),
-    fourthCard = $(".fourthCard"),
-    cardContent = $('.crd_cntnt'),
-    cardContentClone = $('.crd_cntnt_two'),
-    cardButton = $('.crd_btn'),
-    cardCursor = $('.crd_arrow'),
-    splash = $('.splash');
-    correct = $('.correct');
+/*
+ * uilang v1.0.1
+ * http://uilang.com
+ */
 
-master.set(secondCard,{transformOrigin:"50% 50%",opacity:"-=.3",scale:"-= .15",y: -30})
-      .set(thirdCard,{transformOrigin:"50% 50%",opacity:"-=.5",scale:"-= .25",y: -50})
-      .set(fourthCard,{transformOrigin:"50% 50%",opacity:"0",scale:"-= .35",y: -65})
-      .set(cardContentClone,{transformOrigin:"50% 50%",opacity:"0",scale:"-= .15",y: -30})
-      .set( splash,{drawSVG: 0})
-      .add( cardSlideIn())
-      .add( cursor())
-      .add( correctAnswer(),'-= 1')
+document.addEventListener("DOMContentLoaded", function() {
+  "use strict"
 
-//card slide in
-function cardSlideIn(){
-    var tl = new TimelineMax();
-    tl.to([cardContent,firstCard],.3, {transformOrigin:"50% 50%",opacity:0,scale:"+= .15",y: +30},'cardStart')
-      .to(secondCard,1, {transformOrigin:"50% 50%",opacity:1,scale:"+= .15",y: 0},'cardStart')
-      .to(thirdCard,1, {transformOrigin:"50% 50%",opacity:"+= .2",scale:"+= .1",y:'+=20'},'cardStart')
-      .to(fourthCard,1, {transformOrigin:"50% 50%",opacity:"+= .2",scale:"+= .1",y: "+=15"},'cardStart')
-      .to(cardContentClone,1, {transformOrigin:"50% 50%",opacity:1,scale:"+= .1",y: 0},'cardStart')
-    return tl;
-}
+  var codeElements = document.getElementsByTagName("code")
+  var i = codeElements.length
+  var delimiter = "clicking on"
+  var codeBlock
+  var codeBlockContent
 
-//cursor animation
-function cursor(){
-    var tl = new TimelineMax();
-    tl.to(cardCursor,.7, {y:-10, x:-65},'cursorIn')
-      .to(cardButton,.2, {transformOrigin:"50% 50%",scale:"+=.3",ease:Back.easeOut})
-      .to(cardCursor,.04, {y: "+=3"},"+=.3")
-      .to(cardCursor,.04, {y: "-=3"})
-      .set( splash,{display: 'block'})
-      .fromTo( splash,.5, {drawSVG: '100%'},{drawSVG: '0'})
-      .to(cardCursor,.7, {y:0, x:0},"cursorOut")
-      .to(cardButton,.3, {transformOrigin:"50% 50%",scale:"-=.3",ease:Back.easeOut},'cursorOut')
-    return tl;
-}
+  while (i--) {
+    var code = codeElements[i]
+    var content = code.textContent.trim()
+    if (content.lastIndexOf(delimiter, 0) === 0) {
+      codeBlock = code
+      codeBlockContent = content
+      break
+    }
+  }
 
-//correctAnswer answer
-function correctAnswer(){
-    var tl = new TimelineMax();
-    tl.set(correct,{display: 'block'})
-      .from(correct,.7, {transformOrigin:"50% 50%",opacity:0,scale:0,ease:Back.easeOut})
-      .to(correct,.4, {transformOrigin:"50% 50%",opacity:0,scale:0},1.5)
-      .to(correct,1, {})
-    return tl;
-}
+  if (!codeBlock) return
+  codeBlock.parentNode.removeChild(codeBlock)
 
+  function InstructionParsing(instruction) {
+    var separator = instruction.charAt(0)
+    var instructionSplit = instruction.split(separator)
 
+    this.clickSelector = instructionSplit[1]
+    this.classBehavior = instructionSplit[2].trim().split(" ")[0]
+    this.classValue = instructionSplit[3]
+    this.targetSelector = instructionSplit[5]
+  }
+
+  function UIElement(clickSelector, classBehavior, classValue, targetSelector) {
+    this.clickSelector = clickSelector
+    this.classBehavior = classBehavior.charAt(classBehavior.length-1) == "s"
+                       ? classBehavior.substring(0, classBehavior.length-1)
+                       : classBehavior
+    this.classValue = classValue.charAt(0) == "."
+                    ? classValue.substring(1, classValue.length)
+                    : classValue
+    this.targetSelector = targetSelector
+    this.createEventListener()
+  }
+
+  UIElement.prototype.createEventListener = function() {
+    var self = this
+    var clicked = document.querySelectorAll(self.clickSelector)
+    var i = clicked.length
+
+    if (i < 1) {
+      throw new Error("There's no element matching your \"" + self.clickSelector + "\" CSS selector.")
+    }
+
+    while (i--) {
+      clicked.item(i).addEventListener("click", clickCallback)
+    }
+
+    function updateClass(el) {
+      el.classList[self.classBehavior](self.classValue)
+    }
+
+    function clickCallback(e) {
+      switch (self.targetSelector) {
+        case "target" :
+        case "this"   :
+        case "it"     :
+        case "itself" :
+        case undefined:
+          updateClass(e.target)
+          break
+        default:
+          var target = document.querySelectorAll(self.targetSelector)
+          var i = target.length
+          while (i--) {
+            updateClass(target.item(i))
+          }
+      }
+      if (e.target.nodeName.toLowerCase() == "a") {
+        e.preventDefault()
+      }
+    }
+  }
+
+  codeBlockContent.split(delimiter).forEach(function(data) {
+    if (!data) return
+    var params = new InstructionParsing(data.trim())
+    new UIElement(
+      params.clickSelector,
+      params.classBehavior,
+      params.classValue,
+      params.targetSelector
+    )
+  })
+})
 
 
 
